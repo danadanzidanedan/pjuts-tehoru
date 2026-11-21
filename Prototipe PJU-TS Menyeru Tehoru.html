@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipe PJU-TS Menyeru Tehoru</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f2ec; --panel:#ffffff; --ink:#1d2421; --muted:#5f6b66; --line:#e3e0d7;
+  --accent:#0F6E56; --accent-soft:#e1f2ec; --warn:#a4570b; --warn-soft:#fbefdc; --bad:#a32d2d; --bad-soft:#fbe9e9;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:14px}
+.app{display:grid;grid-template-columns:1fr 380px;height:100vh}
+.stage{position:relative;overflow:hidden;background:#0d1626}
+#view{position:absolute;inset:0;touch-action:none;cursor:grab}
+#view:active{cursor:grabbing}
+.topbar{position:absolute;left:12px;right:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;pointer-events:none}
+.topbar .brand{pointer-events:auto;background:rgba(255,255,255,.94);border-radius:var(--r);padding:8px 12px;margin-right:auto}
+.brand b{display:block;font-size:15px}
+.brand span{font-size:12px;color:var(--muted)}
+.tb{pointer-events:auto;display:flex;gap:4px;background:rgba(255,255,255,.94);border-radius:var(--r);padding:4px}
+.tb button{border:0;background:transparent;padding:7px 10px;border-radius:7px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.tb button:hover{background:#eceae3}
+.tb button.on{background:var(--accent);color:#fff}
+.hint{position:absolute;left:12px;bottom:12px;background:rgba(13,22,38,.72);color:#e6ece9;font-size:12px;padding:7px 10px;border-radius:8px;pointer-events:none}
+.side{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column}
+.stats{padding:14px 14px 6px;border-bottom:1px solid var(--line)}
+.stats h3{margin:0 0 8px;font-size:13px;text-transform:none;color:var(--muted);font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card{background:#f7f6f1;border-radius:8px;padding:8px 10px}
+.card .k{font-size:11.5px;color:var(--muted)}
+.card .v{font-size:15px;font-weight:700;margin-top:2px}
+.card.wide{grid-column:1/-1}
+.card.ok{background:var(--accent-soft)} .card.ok .v{color:var(--accent)}
+.card.warn{background:var(--warn-soft)} .card.warn .v{color:var(--warn)}
+.card.bad{background:var(--bad-soft)} .card.bad .v{color:var(--bad)}
+.note{font-size:11.5px;color:var(--muted);line-height:1.5;margin:8px 0 6px}
+.actions{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.btn{border:1px solid var(--line);background:#fff;padding:7px 11px;border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+.btn:hover{border-color:#c9c5b8}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:700;font-size:13.5px;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--muted);font-weight:500;font-size:16px}
+details[open] summary::after{content:"\2212"}
+.body{padding:0 14px 12px}
+.row{margin:0 0 12px}
+.row .lab{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;color:var(--ink)}
+.row .lab em{font-style:normal;font-weight:700;color:var(--accent)}
+.row .sub{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=text],input[type=number],select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:13px;background:#fff;color:var(--ink)}
+.seg{display:flex;background:#f1efe8;border-radius:8px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 4px;border-radius:6px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.colors{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sw{width:24px;height:24px;border-radius:6px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.sw.on{box-shadow:0 0 0 2px var(--accent)}
+input[type=color]{width:34px;height:28px;border:1px solid var(--line);border-radius:6px;padding:1px;background:#fff;cursor:pointer}
+.tog{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin:0 0 10px;cursor:pointer}
+.tog input{width:34px;height:18px;accent-color:var(--accent)}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.presets button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 6px;font:inherit;font-size:12px;cursor:pointer;text-align:left}
+.presets button b{display:block;font-size:12.5px}
+.presets button span{color:var(--muted);font-size:11px}
+.presets button:hover{border-color:var(--accent)}
+.modal{position:fixed;inset:0;background:rgba(10,15,20,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.show{display:flex}
+.modal .box{background:#fff;border-radius:12px;max-width:880px;width:100%;max-height:90vh;overflow:auto;padding:16px}
+.modal img{width:100%;border-radius:8px;display:block}
+.modal textarea{width:100%;height:320px;font-family:ui-monospace,monospace;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:10px}
+.modal .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+.modal .mh b{font-size:15px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d2421;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+.err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;padding:30px;text-align:center}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:58vh auto;height:auto}
+  .stage{height:58vh}
+  .side{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="view"></canvas>
+    <div class="err" id="err">Browser ini tidak mendukung WebGL, jadi tampilan 3D tidak bisa dimuat.</div>
+    <div class="topbar">
+      <div class="brand"><b>Prototipe PJU-TS</b><span>PK-16 Menyeru Tehoru, KKN-PPM UGM 2027</span></div>
+      <div class="tb" id="views">
+        <button data-v="iso">3D</button>
+        <button data-v="front">Depan</button>
+        <button data-v="side">Samping</button>
+        <button data-v="top">Atas</button>
+        <button data-v="row">Deretan</button>
+      </div>
+      <div class="tb">
+        <button id="bNight">Malam</button>
+        <button id="bRotate">Putar otomatis</button>
+        <button id="bShot">Ambil foto</button>
+      </div>
+    </div>
+    <div class="hint">Geser untuk memutar · scroll atau cubit untuk zoom · klik kanan atau Shift + geser untuk menggeser</div>
+  </div>
+  <aside class="side">
+    <div class="stats">
+      <h3>Hasil hitung (estimasi per titik)</h3>
+      <div class="grid" id="stats"></div>
+      <div class="note">Angka adalah estimasi kasar untuk perencanaan. Klaim watt lampu di marketplace sering jauh di atas daya nyata, jadi cek lumen dan kapasitas baterai (Wh) di spesifikasi produk.</div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="bCopy">Salin spesifikasi</button>
+      <button class="btn" id="bShot2">Foto desain</button>
+      <button class="btn" id="bReset">Reset</button>
+    </div>
+    <div id="controls"></div>
+  </aside>
+</div>
+
+<div class="modal" id="mShot"><div class="box">
+  <div class="mh"><b>Foto desain</b><div><button class="btn" id="bCopyImg">Salin gambar</button> <button class="btn" data-close>Tutup</button></div></div>
+  <img id="shotImg" alt="Foto desain PJU-TS">
+  <div class="note">Klik kanan (atau tekan lama di HP) pada gambar, lalu pilih simpan gambar. Bisa langsung ditempel ke PowerPoint atau proposal.</div>
+</div></div>
+<div class="modal" id="mSpec"><div class="box">
+  <div class="mh"><b>Spesifikasi desain</b><button class="btn" data-close>Tutup</button></div>
+  <textarea id="specText" readonly></textarea>
+  <div class="note">Salin otomatis tidak diizinkan di tampilan ini. Pilih semua teks di atas lalu salin manual.</div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const STORE="pjuts-tehoru-v1";
+
+const DEF={
+  type:"aio", poleH:6, poleShape:"oct", poleColor:"#a3a9b0", baseD:0.16, armL:0.8, armAngle:10,
+  panelW:0.6, panelL:1.2, panelTilt:12, panelAz:0,
+  lampW:60, eff:120, cct:"4000", beam:120, mode:"dim",
+  hours:12, autonomy:2, psh:4.0,
+  signOn:true, signText:"KKN-PPM UGM MENYERU TEHORU 2027", signColor:"#0F6E56",
+  footW:0.6, footD:1.0, xray:false,
+  count:3, spacing:25,
+  night:true, showCone:true, showPerson:true, showEnv:true, showLabels:true, autoRotate:false,
+  prLamp:2500000, prPole:2500000, prFound:750000, prCargo:1000000
+};
+const PRESETS={
+  hemat:{type:"aio",poleH:5,poleShape:"round",armL:0.5,armAngle:8,panelW:0.45,panelL:0.9,lampW:40,beam:120,mode:"sensor",cct:"4000",count:3,spacing:20,prLamp:1500000,prPole:1200000,prFound:600000,prCargo:700000},
+  standar:{},
+  evakuasi:{type:"twoinone",poleH:7,poleShape:"oct",armL:1.2,armAngle:12,panelW:0.7,panelL:1.4,panelTilt:12,lampW:80,cct:"5000",beam:130,mode:"dim",autonomy:3,count:5,spacing:25,signText:"JALUR EVAKUASI TSUNAMI",signColor:"#D9661F",prLamp:4000000,prPole:3000000,prFound:900000,prCargo:1300000}
+};
+const CCT={"3000":"#ffc27a","4000":"#ffe0b2","5000":"#fff1dc","6500":"#dfe9ff"};
+const MODE={full:{f:1,n:"Penuh sepanjang malam"},dim:{f:0.6,n:"Dimming (redup tengah malam)"},sensor:{f:0.4,n:"Sensor gerak (redup bila sepi)"}};
+const TYPE={aio:"All in one",twoinone:"Two in one",split:"Split (terpisah)"};
+const clone=o=>JSON.parse(JSON.stringify(o));
+function load(){try{const s=localStorage.getItem(STORE);if(s)return Object.assign(clone(DEF),JSON.parse(s));}catch(e){}return null;}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(P));}catch(e){}}
+let P=load()||clone(DEF);
+
+const fmt=(n,d=0)=>Number(n).toLocaleString("id-ID",{minimumFractionDigits:d,maximumFractionDigits:d});
+const rp=n=>"Rp"+fmt(Math.round(n));
+const rad=d=>d*Math.PI/180;
+
+/* ---------- controls ---------- */
+const SEC=[
+ {t:"Tipe dan preset",open:true,items:[
+   {k:"type",ty:"seg",o:[["aio","All in one"],["twoinone","Two in one"],["split","Split"]],
+    sub:()=>({aio:"Panel, baterai, controller, dan LED menyatu di satu unit. Paling mudah dipasang.",twoinone:"Panel dan baterai menyatu di puncak tiang, lampu LED terpisah di lengan.",split:"Panel di puncak, lampu di lengan, baterai dan controller di box pada tiang. Mudah ganti baterai."})[P.type]},
+   {ty:"presets"}
+ ]},
+ {t:"Tiang",open:true,items:[
+   {k:"poleH",ty:"range",l:"Tinggi tiang",min:3,max:9,st:0.5,u:"m",d:1},
+   {k:"poleShape",ty:"seg",l:"Bentuk",o:[["oct","Oktagonal"],["round","Bulat"]]},
+   {k:"poleColor",ty:"color",l:"Warna tiang",sw:["#a3a9b0","#2b2f33","#1f5c46","#f1f1ee","#7a4a2a","#1d4e89"]},
+   {k:"baseD",ty:"range",l:"Diameter bawah",min:0.1,max:0.25,st:0.01,u:"m",d:2},
+   {k:"armL",ty:"range",l:"Panjang lengan",min:0,max:2,st:0.1,u:"m",d:1},
+   {k:"armAngle",ty:"range",l:"Sudut lengan",min:0,max:30,st:1,u:"°",d:0}
+ ]},
+ {t:"Panel surya",items:[
+   {k:"panelL",ty:"range",l:"Panjang panel",min:0.5,max:2,st:0.05,u:"m",d:2},
+   {k:"panelW",ty:"range",l:"Lebar panel",min:0.3,max:1.2,st:0.05,u:"m",d:2},
+   {k:"panelTilt",ty:"range",l:"Kemiringan panel",min:0,max:45,st:1,u:"°",d:0,
+    sub:()=>P.panelTilt<5?"Di bawah 5° debu dan air hujan mudah menggenang. Tehoru dekat ekuator (sekitar 3° LS), jadi 10 sampai 15° sudah cukup.":"Tehoru dekat ekuator (sekitar 3° LS): 10 sampai 15° menghadap utara umumnya cukup dan membantu panel bersih saat hujan."},
+   {k:"panelAz",ty:"range",l:"Arah hadap panel (0° = utara)",min:-180,max:180,st:5,u:"°",d:0,when:()=>P.type!=="aio"}
+ ]},
+ {t:"Lampu",items:[
+   {k:"lampW",ty:"range",l:"Daya lampu (nyata)",min:10,max:150,st:5,u:"W",d:0},
+   {k:"eff",ty:"range",l:"Efikasi LED",min:80,max:180,st:5,u:"lm/W",d:0,sub:()=>"LED jalan yang baik sekitar 110 sampai 150 lm/W."},
+   {k:"cct",ty:"seg",l:"Warna cahaya",o:[["3000","3000K"],["4000","4000K"],["5000","5000K"],["6500","6500K"]],sub:()=>"3000 sampai 4000K lebih nyaman dan tidak terlalu menarik serangga. 6500K terlihat lebih terang tapi silau."},
+   {k:"beam",ty:"range",l:"Sudut sorot",min:60,max:150,st:5,u:"°",d:0},
+   {k:"mode",ty:"select",l:"Mode nyala",o:Object.keys(MODE).map(k=>[k,MODE[k].n])}
+ ]},
+ {t:"Energi dan baterai",items:[
+   {k:"hours",ty:"range",l:"Lama nyala per malam",min:8,max:14,st:0.5,u:"jam",d:1},
+   {k:"autonomy",ty:"range",l:"Cadangan hari mendung",min:1,max:4,st:1,u:"hari",d:0,sub:()=>"Masa KKN jatuh di puncak hujan, jadi cadangan minimal 2 hari disarankan."},
+   {k:"psh",ty:"range",l:"Jam matahari efektif",min:3,max:6,st:0.1,u:"jam",d:1,sub:()=>"Asumsi konservatif untuk musim hujan. Ganti bila ada data iradiasi lokal."}
+ ]},
+ {t:"Plang dan identitas",items:[
+   {k:"signOn",ty:"toggle",l:"Tampilkan plang di tiang"},
+   {k:"signText",ty:"text",l:"Teks plang",when:()=>P.signOn},
+   {k:"signColor",ty:"color",l:"Warna plang",sw:["#0F6E56","#D9661F","#1d4e89","#a32d2d","#2b2f33","#c79a1e"],when:()=>P.signOn}
+ ]},
+ {t:"Pondasi",items:[
+   {k:"footW",ty:"range",l:"Lebar pondasi (persegi)",min:0.4,max:1,st:0.05,u:"m",d:2},
+   {k:"footD",ty:"range",l:"Kedalaman pondasi",min:0.6,max:1.5,st:0.05,u:"m",d:2},
+   {k:"xray",ty:"toggle",l:"Lihat pondasi di dalam tanah"}
+ ]},
+ {t:"Tata letak dan tampilan",items:[
+   {k:"count",ty:"range",l:"Jumlah titik",min:1,max:8,st:1,u:"titik",d:0},
+   {k:"spacing",ty:"range",l:"Jarak antar tiang",min:10,max:50,st:1,u:"m",d:0,when:()=>P.count>1},
+   {k:"night",ty:"toggle",l:"Mode malam"},
+   {k:"showCone",ty:"toggle",l:"Tampilkan sorot cahaya",when:()=>P.night},
+   {k:"showLabels",ty:"toggle",l:"Label komponen"},
+   {k:"showPerson",ty:"toggle",l:"Orang (skala 1,7 m)"},
+   {k:"showEnv",ty:"toggle",l:"Jalan, pantai, dan pohon"},
+   {k:"autoRotate",ty:"toggle",l:"Putar otomatis"}
+ ]},
+ {t:"Estimasi biaya per titik",items:[
+   {k:"prLamp",ty:"num",l:"Unit lampu (all in one atau set)"},
+   {k:"prPole",ty:"num",l:"Tiang"},
+   {k:"prFound",ty:"num",l:"Pondasi, angkur, dan pasang"},
+   {k:"prCargo",ty:"num",l:"Kargo ke Tehoru"},
+   {ty:"note",txt:"Harga bawaan adalah asumsi dari harga marketplace Jawa (November 2026). Ganti dengan penawaran vendor dan ongkir ekspedisi."}
+ ]}
+];
+const NOREBUILD=new Set(["autoRotate","prLamp","prPole","prFound","prCargo","hours","autonomy","psh","mode","eff"]);
+
+function renderControls(){
+  const host=$("#controls"); const opened=[...host.querySelectorAll("details")].map(d=>d.open);
+  host.innerHTML="";
+  SEC.forEach((s,si)=>{
+    const det=document.createElement("details"); det.open=opened.length?opened[si]:!!s.open;
+    det.innerHTML=`<summary>${s.t}</summary>`; const body=document.createElement("div"); body.className="body"; det.appendChild(body);
+    s.items.forEach(it=>{ const el=makeItem(it); if(el){ el._it=it; body.appendChild(el);} });
+    host.appendChild(det);
+  });
+  refreshVis();
+}
+function makeItem(it){
+  const row=document.createElement("div"); row.className="row";
+  const lab=(extra="")=>`<div class="lab"><span>${it.l||""}</span>${extra}</div>`;
+  const sub=()=>it.sub?`<div class="sub">${it.sub()}</div>`:"";
+  if(it.ty==="range"){
+    row.innerHTML=lab(`<em>${fmt(P[it.k],it.d)} ${it.u}</em>`)+`<input type="range" min="${it.min}" max="${it.max}" step="${it.st}" value="${P[it.k]}">`+sub();
+    const inp=row.querySelector("input"), em=row.querySelector("em");
+    inp.addEventListener("input",()=>{em.textContent=fmt(+inp.value,it.d)+" "+it.u; set(it.k,+inp.value,row);});
+  } else if(it.ty==="seg"){
+    row.innerHTML=(it.l?lab():"")+`<div class="seg">${it.o.map(o=>`<button data-v="${o[0]}" class="${P[it.k]===o[0]?"on":""}">${o[1]}</button>`).join("")}</div>`+sub();
+    row.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{row.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); set(it.k,b.dataset.v,row);}));
+  } else if(it.ty==="select"){
+    row.innerHTML=lab()+`<select>${it.o.map(o=>`<option value="${o[0]}" ${P[it.k]===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select>`;
+    const s=row.querySelector("select"); s.addEventListener("change",()=>set(it.k,s.value,row));
+  } else if(it.ty==="color"){
+    row.innerHTML=lab()+`<div class="colors">${it.sw.map(c=>`<div class="sw ${P[it.k].toLowerCase()===c.toLowerCase()?"on":""}" data-c="${c}" style="background:${c}" title="${c}"></div>`).join("")}<input type="color" value="${P[it.k]}"></div>`;
+    const ci=row.querySelector("input");
+    const mark=c=>row.querySelectorAll(".sw").forEach(x=>x.classList.toggle("on",x.dataset.c.toLowerCase()===c.toLowerCase()));
+    row.querySelectorAll(".sw").forEach(x=>x.addEventListener("click",()=>{ci.value=x.dataset.c;mark(x.dataset.c);set(it.k,x.dataset.c,row);}));
+    ci.addEventListener("input",()=>{mark(ci.value);set(it.k,ci.value,row);});
+  } else if(it.ty==="text"){
+    row.innerHTML=lab()+`<input type="text" maxlength="60" value="">`;
+    const t=row.querySelector("input"); t.value=P[it.k]; t.addEventListener("input",()=>set(it.k,t.value,row));
+  } else if(it.ty==="num"){
+    row.innerHTML=lab(`<em>${rp(P[it.k])}</em>`)+`<input type="number" min="0" step="50000" value="${P[it.k]}">`;
+    const n=row.querySelector("input"), em=row.querySelector("em");
+    n.addEventListener("input",()=>{const v=Math.max(0,+n.value||0); em.textContent=rp(v); set(it.k,v,row);});
+  } else if(it.ty==="toggle"){
+    row.className="tog"; row.innerHTML=`<span>${it.l}</span><input type="checkbox" ${P[it.k]?"checked":""}>`;
+    const c=row.querySelector("input"); c.addEventListener("change",()=>set(it.k,c.checked,row));
+    row.addEventListener("click",e=>{if(e.target!==c){c.checked=!c.checked;set(it.k,c.checked,row);}});
+  } else if(it.ty==="presets"){
+    row.innerHTML=`<div class="lab"><span>Mulai dari preset</span></div><div class="presets">
+      <button data-p="hemat"><b>Hemat</b><span>40W, tiang 5 m</span></button>
+      <button data-p="standar"><b>Standar</b><span>60W, tiang 6 m</span></button>
+      <button data-p="evakuasi"><b>Jalur evakuasi</b><span>80W, tiang 7 m</span></button></div>`;
+    row.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.p)));
+  } else if(it.ty==="note"){
+    row.innerHTML=`<div class="sub">${it.txt}</div>`;
+  }
+  return row;
+}
+function set(k,v,row){
+  P[k]=v; save();
+  if(row && row._it && row._it.sub){ const s=row.querySelector(".sub"); if(s) s.textContent=row._it.sub(); }
+  if(!NOREBUILD.has(k)) queueBuild();
+  if(k==="night") syncTopbar();
+  if(k==="autoRotate") syncTopbar();
+  refreshVis(); updateStats();
+}
+function refreshVis(){ document.querySelectorAll("#controls .row, #controls .tog").forEach(r=>{ if(r._it&&r._it.when) r.style.display=r._it.when()?"":"none"; }); }
+function applyPreset(name){ P=Object.assign(clone(DEF),PRESETS[name]); save(); renderControls(); queueBuild(); updateStats(); syncTopbar(); toast("Preset "+({hemat:"Hemat",standar:"Standar",evakuasi:"Jalur evakuasi"})[name]+" dipakai"); }
+
+/* ---------- calc ---------- */
+function geo(){
+  const L=Math.max(P.armL,P.type==="aio"?0.3:0.25), a=rad(P.armAngle);
+  const ex=-L*Math.cos(a), ey=P.poleH+L*Math.sin(a);
+  const headLen=P.type==="aio"?P.panelL:0.55;
+  const t=P.type==="aio"?rad(P.panelTilt):0;
+  const lx0=-headLen*0.55, ly0=-0.06;
+  const lx=ex+lx0*Math.cos(t)-ly0*Math.sin(-t), ly=ey+lx0*Math.sin(-t)+ly0*Math.cos(t);
+  return {L,a,ex,ey,headLen,lx,ly};
+}
+function calc(){
+  const g=geo(), half=rad(Math.min(P.beam/2,80));
+  const lm=P.lampW*P.eff, omega=2*Math.PI*(1-Math.cos(half));
+  const I=lm*0.85/omega, h=g.ly, lux=I/(h*h), diam=2*h*Math.tan(half);
+  const f=MODE[P.mode].f, E=P.lampW*P.hours*f, batt=E*P.autonomy/0.8, ah=batt/12.8;
+  const need=E/(P.psh*0.75), have=P.panelW*P.panelL*200;
+  const cost=P.prLamp+P.prPole+P.prFound+P.prCargo;
+  const ratio=P.count>1?P.spacing/h:0;
+  return {lm,lux,diam,E,batt,ah,need,have,cost,total:cost*P.count,ratio,h};
+}
+function updateStats(){
+  const c=calc();
+  const pv=c.have>=c.need?"ok":(c.have>=c.need*0.8?"warn":"bad");
+  const pvTxt=c.have>=c.need?"Cukup":"Kurang "+fmt(c.need-c.have)+" Wp";
+  let sp="",spc="";
+  if(P.count>1){ if(c.ratio<=4){sp="Merata";spc="ok";} else if(c.ratio<=5.5){sp="Ada area redup";spc="warn";} else {sp="Banyak area gelap";spc="bad";} }
+  const cards=[
+    ["Fluks cahaya",fmt(c.lm)+" lm",""],
+    ["Terang di bawah lampu","± "+fmt(c.lux,1)+" lux",""],
+    ["Diameter area terang","± "+fmt(c.diam,1)+" m",""],
+    ["Energi per malam",fmt(c.E)+" Wh",""],
+    ["Baterai minimal",fmt(c.batt)+" Wh ("+fmt(c.ah)+" Ah 12,8V)",""],
+    ["Panel: butuh vs ada",fmt(c.need)+" / "+fmt(c.have)+" Wp",pv],
+    ["Status panel",pvTxt,pv]
+  ];
+  if(P.count>1) cards.push(["Jarak "+P.spacing+" m = "+fmt(c.ratio,1)+"x tinggi",sp,spc]);
+  cards.push(["Biaya per titik",rp(c.cost),""]);
+  cards.push(["Total "+P.count+" titik",rp(c.total),"wide ok"]);
+  $("#stats").innerHTML=cards.map(x=>`<div class="card ${x[2]}"><div class="k">${x[0]}</div><div class="v">${x[1]}</div></div>`).join("");
+}
+function specText(){
+  const c=calc();
+  return [
+    "SPESIFIKASI PROTOTIPE PJU-TS",
+    "PK-16 Menyeru Tehoru, KKN-PPM UGM 2027","",
+    "Tipe            : "+TYPE[P.type],
+    "Tiang           : "+(P.poleShape==="oct"?"Oktagonal":"Bulat")+", tinggi "+fmt(P.poleH,1)+" m, diameter bawah "+fmt(P.baseD*100)+" cm, warna "+P.poleColor,
+    "Lengan          : "+fmt(P.armL,1)+" m, sudut "+P.armAngle+"°",
+    "Panel surya     : "+fmt(P.panelL,2)+" x "+fmt(P.panelW,2)+" m (± "+fmt(c.have)+" Wp), kemiringan "+P.panelTilt+"°"+(P.type!=="aio"?", arah "+P.panelAz+"° dari utara":""),
+    "Lampu LED       : "+P.lampW+" W nyata, "+P.eff+" lm/W (± "+fmt(c.lm)+" lm), "+P.cct+"K, sudut sorot "+P.beam+"°",
+    "Mode nyala      : "+MODE[P.mode].n+", "+fmt(P.hours,1)+" jam per malam",
+    "Baterai minimal : "+fmt(c.batt)+" Wh (± "+fmt(c.ah)+" Ah pada 12,8V LiFePO4), cadangan "+P.autonomy+" hari",
+    "Kebutuhan panel : "+fmt(c.need)+" Wp (asumsi "+fmt(P.psh,1)+" jam matahari efektif)",
+    "Pondasi         : cor "+fmt(P.footW*100)+" x "+fmt(P.footW*100)+" x "+fmt(P.footD*100)+" cm dengan angkur",
+    "Plang           : "+(P.signOn?"\""+P.signText+"\"":"tidak ada"),
+    "Tata letak      : "+P.count+" titik"+(P.count>1?", jarak "+P.spacing+" m":""),"",
+    "Kinerja (estimasi): ± "+fmt(c.lux,1)+" lux di bawah lampu, diameter area terang ± "+fmt(c.diam,1)+" m","",
+    "Estimasi biaya per titik:",
+    "  Unit lampu     "+rp(P.prLamp),
+    "  Tiang          "+rp(P.prPole),
+    "  Pondasi+pasang "+rp(P.prFound),
+    "  Kargo          "+rp(P.prCargo),
+    "  Subtotal       "+rp(c.cost),
+    "Total "+P.count+" titik     "+rp(c.total),"",
+    "Catatan: angka estimasi untuk perencanaan, belum penawaran vendor."
+  ].join("\n");
+}
+
+/* ---------- three ---------- */
+let renderer;
+try{
+  renderer=new THREE.WebGLRenderer({canvas:$("#view"),antialias:true,preserveDrawingBuffer:true});
+}catch(e){ $("#err").style.display="flex"; }
+if(!renderer){ renderControls(); updateStats(); return; }
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,0.05,800);
+const hemi=new THREE.HemisphereLight(0xcfe3ff,0x5a6a45,0.8); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.position.set(18,30,12); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-30,right:30,top:30,bottom:-30,near:1,far:120}); sun.shadow.bias=-0.0005;
+scene.add(sun); scene.add(sun.target);
+let stars;{const g=new THREE.BufferGeometry(),n=700,a=new Float32Array(n*3);for(let i=0;i<n;i++){const t=Math.random()*Math.PI*2,p=Math.random()*1.35,r=300;a[i*3]=r*Math.sin(p)*Math.cos(t);a[i*3+1]=r*Math.cos(p)+10;a[i*3+2]=r*Math.sin(p)*Math.sin(t);}g.setAttribute("position",new THREE.BufferAttribute(a,3));stars=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1.1,sizeAttenuation:false}));scene.add(stars);}
+
+function canvasTex(w,h,draw){const c=document.createElement("canvas");c.width=w;c.height=h;draw(c.getContext("2d"),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;}
+const panelTex=canvasTex(512,256,(x,w,h)=>{x.fillStyle="#c9ced4";x.fillRect(0,0,w,h);x.fillStyle="#0c1d3a";x.fillRect(8,8,w-16,h-16);const cols=10,rows=6,cw=(w-24)/cols,ch=(h-24)/rows;for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){x.fillStyle=(i+j)%2?"#16346a":"#143062";x.fillRect(12+i*cw+1.5,12+j*ch+1.5,cw-3,ch-3);x.strokeStyle="rgba(170,200,255,.25)";x.lineWidth=1;for(let k=1;k<4;k++){x.beginPath();x.moveTo(12+i*cw+k*cw/4,12+j*ch+2);x.lineTo(12+i*cw+k*cw/4,12+(j+1)*ch-2);x.stroke();}}});
+const SHARED=new Set([panelTex]);
+function rr(x,X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.lineTo(X+W-R,Y);x.quadraticCurveTo(X+W,Y,X+W,Y+R);x.lineTo(X+W,Y+H-R);x.quadraticCurveTo(X+W,Y+H,X+W-R,Y+H);x.lineTo(X+R,Y+H);x.quadraticCurveTo(X,Y+H,X,Y+H-R);x.lineTo(X,Y+R);x.quadraticCurveTo(X,Y,X+R,Y);x.closePath();}
+function wrap(x,text,maxW){const words=text.split(/\s+/).filter(Boolean),lines=[];let cur="";words.forEach(w=>{const t=cur?cur+" "+w:w;if(x.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;});if(cur)lines.push(cur);return lines;}
+function signTex(){return canvasTex(280,400,(x,w,h)=>{x.fillStyle=P.signColor;x.fillRect(0,0,w,h);x.strokeStyle="#fff";x.lineWidth=8;rr(x,14,14,w-28,h-28,14);x.stroke();x.fillStyle="#fff";x.textAlign="center";x.font="700 22px 'Plus Jakarta Sans',sans-serif";x.fillText("PJU TENAGA SURYA",w/2,58);x.fillRect(50,74,w-100,3);let fs=40;let lines;do{x.font=`800 ${fs}px 'Plus Jakarta Sans',sans-serif`;lines=wrap(x,(P.signText||" ").toUpperCase(),w-60);fs-=2;}while((lines.length*fs*1.2>230||lines.some(l=>x.measureText(l).width>w-56))&&fs>14);const lh=fs*1.25,y0=h/2+28-(lines.length-1)*lh/2;lines.forEach((l,i)=>x.fillText(l,w/2,y0+i*lh));});}
+function labelSprite(text){
+  const fs=34,pad=16,c=document.createElement("canvas"),x=c.getContext("2d");x.font=`600 ${fs}px 'Plus Jakarta Sans',sans-serif`;
+  const w=Math.ceil(x.measureText(text).width)+pad*2,h=fs+pad*1.4;c.width=w;c.height=h;
+  x.font=`600 ${fs}px 'Plus Jakarta Sans',sans-serif`;x.fillStyle="rgba(255,255,255,.94)";rr(x,2,2,w-4,h-4,12);x.fill();x.strokeStyle="#0F6E56";x.lineWidth=3;x.stroke();
+  x.fillStyle="#12312a";x.textBaseline="middle";x.fillText(text,pad,h/2+1);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true}));const sc=0.42;s.scale.set(sc*w/h,sc,1);s.renderOrder=999;s.center.set(0,0.5);return s;
+}
+function leader(a,b){const g=new THREE.BufferGeometry().setFromPoints([a,b]);const l=new THREE.Line(g,new THREE.LineBasicMaterial({color:0x0F6E56,depthTest:false,transparent:true}));l.renderOrder=998;return l;}
+const std=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:0},o));
+function mesh(geo,mat,cast=true,recv=true){const m=new THREE.Mesh(geo,mat);m.castShadow=cast;m.receiveShadow=recv;return m;}
+
+let world=null;
+const POLE_X=3.4;
+function buildWorld(){
+  const g=new THREE.Group();
+  const span=(P.count-1)*P.spacing, len=span+80, zc=span/2;
+  const ground=mesh(new THREE.PlaneGeometry(600,600),std(0x6f8f4e,{roughness:1}),false,true);ground.rotation.x=-Math.PI/2;g.add(ground);
+  if(P.showEnv){
+    const road=mesh(new THREE.PlaneGeometry(5.4,len),std(0x3b3d41,{roughness:.95}),false,true);road.rotation.x=-Math.PI/2;road.position.set(0,0.01,zc);g.add(road);
+    [[-3.3,1.2],[3.3,1.2]].forEach(([x,w])=>{const s=mesh(new THREE.PlaneGeometry(w,len),std(0xb3a78c,{roughness:1}),false,true);s.rotation.x=-Math.PI/2;s.position.set(x,0.008,zc);g.add(s);});
+    const dm=std(0xf1f1ea,{roughness:.8});for(let z=zc-len/2+2;z<zc+len/2;z+=7){const d=mesh(new THREE.PlaneGeometry(0.13,3),dm,false,true);d.rotation.x=-Math.PI/2;d.position.set(0,0.015,z);g.add(d);}
+    const sand=mesh(new THREE.PlaneGeometry(12,len+200),std(0xe2d3a8,{roughness:1}),false,true);sand.rotation.x=-Math.PI/2;sand.position.set(-10,0.012,zc);g.add(sand);
+    const sea=mesh(new THREE.PlaneGeometry(300,len+400),std(0x2f6f8f,{roughness:.25,metalness:.1}),false,true);sea.rotation.x=-Math.PI/2;sea.position.set(-166,0.02,zc);g.add(sea);
+    const trunk=std(0x7a5a3a),leaf=std(0x3f7a3a);
+    for(let i=0;i<Math.max(4,P.count+2);i++){const z=zc-span/2-12+i*((span+24)/Math.max(3,P.count+1));const x=9+(i%2)*3;const t=mesh(new THREE.CylinderGeometry(0.14,0.2,5,8),trunk);t.position.set(x,2.5,z);t.rotation.z=(i%2?0.08:-0.06);g.add(t);for(let k=0;k<6;k++){const f=mesh(new THREE.ConeGeometry(0.35,2.6,5),leaf);f.position.set(x+Math.cos(k)*0.9,5.1,z+Math.sin(k)*0.9);f.rotation.set(Math.sin(k)*1.1,0,-Math.cos(k)*1.1);g.add(f);}}
+    const comp=new THREE.Group();const ar=mesh(new THREE.ConeGeometry(0.35,1,3),std(0xffffff),false,false);ar.rotation.x=Math.PI/2;ar.position.set(0,0.05,0.5);comp.add(ar);
+    const u=labelSprite("U (utara)");u.material.depthTest=true;u.renderOrder=0;u.position.set(0.3,0.4,1.4);comp.add(u);comp.position.set(POLE_X+5,0,-9);g.add(comp);
+  }
+  return g;
+}
+
+let poles=null;
+function buildPole(i){
+  const g=new THREE.Group(), G=geo(), h=P.poleH, rB=P.baseD/2, rT=rB*0.55, ped=0.15;
+  const pm=std(P.poleColor,{metalness:.55,roughness:.38,flatShading:P.poleShape==="oct"});
+  const pole=mesh(new THREE.CylinderGeometry(rT,rB,h-ped,P.poleShape==="oct"?8:32),pm);pole.position.y=ped+(h-ped)/2;if(P.poleShape==="oct")pole.rotation.y=Math.PI/8;g.add(pole);
+  const plate=mesh(new THREE.BoxGeometry(0.34,0.02,0.34),std(0x8d939a,{metalness:.6,roughness:.4}));plate.position.y=ped+0.01;g.add(plate);
+  const bm=std(0x55595e,{metalness:.7,roughness:.35});[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,b])=>{const n=mesh(new THREE.CylinderGeometry(0.014,0.014,0.06,8),bm);n.position.set(a*0.13,ped+0.03,b*0.13);g.add(n);});
+  const cm=P.xray?std(0xc9c4b8,{transparent:true,opacity:.6,depthTest:false}):std(0xc9c4b8,{roughness:.95});
+  const foot=mesh(new THREE.BoxGeometry(P.footW,P.footD+ped,P.footW),cm);foot.position.y=(ped-P.footD)/2;if(P.xray)foot.renderOrder=5;g.add(foot);
+  if(P.xray){const e=new THREE.LineSegments(new THREE.EdgesGeometry(foot.geometry),new THREE.LineBasicMaterial({color:0x5b4a2a,depthTest:false}));e.position.copy(foot.position);e.renderOrder=6;g.add(e);
+    const am=new THREE.MeshBasicMaterial({color:0x7d8288,depthTest:false});[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,b])=>{const r=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,P.footD*0.8,6),am);r.position.set(a*0.13,ped-P.footD*0.4,b*0.13);r.renderOrder=7;g.add(r);});}
+  const dir=new THREE.Vector3(-Math.cos(G.a),Math.sin(G.a),0);
+  const arm=mesh(new THREE.CylinderGeometry(0.028,0.034,G.L,12),pm);arm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);arm.position.set(G.ex/2,h+(G.ey-h)/2,0);g.add(arm);
+  const cap=mesh(new THREE.SphereGeometry(rT*1.15,16,10),pm);cap.position.y=h;g.add(cap);
+  const col=new THREE.Color(CCT[P.cct]);
+  const emitMat=P.night?new THREE.MeshBasicMaterial({color:col}):std(0xe9ecef,{roughness:.2,metalness:.1});
+  const body=std(0x5b6068,{metalness:.5,roughness:.45});
+  const labels=[];
+  if(P.type==="aio"){
+    const head=new THREE.Group();head.position.set(G.ex,G.ey,0);head.rotation.z=-rad(P.panelTilt);
+    const L=G.headLen,W=P.panelW;
+    const b=mesh(new THREE.BoxGeometry(L,0.07,W),body);b.position.set(-L/2,0,0);head.add(b);
+    const pmats=[std(0xc9ced4,{metalness:.6}),std(0xc9ced4,{metalness:.6}),new THREE.MeshStandardMaterial({map:panelTex,roughness:.25,metalness:.2}),std(0x333),std(0xc9ced4,{metalness:.6}),std(0xc9ced4,{metalness:.6})];
+    const pn=mesh(new THREE.BoxGeometry(L*0.98,0.015,W*0.96),pmats);pn.position.set(-L/2,0.043,0);head.add(pn);
+    const em=mesh(new THREE.PlaneGeometry(L*0.5,W*0.6),emitMat,false,false);em.rotation.x=Math.PI/2;em.position.set(-L*0.55,-0.036,0);head.add(em);
+    const clamp=mesh(new THREE.BoxGeometry(0.12,0.1,0.12),body);clamp.position.set(-0.02,0,0);head.add(clamp);
+    g.add(head);
+    labels.push([new THREE.Vector3(G.ex-L/2,G.ey+0.06,W/2),new THREE.Vector3(1.0,G.ey+0.55,0),"Unit all in one: panel, baterai, controller, LED"]);
+  } else {
+    const head=new THREE.Group();head.position.set(G.ex,G.ey,0);head.rotation.z=-rad(4);
+    const b=mesh(new THREE.BoxGeometry(0.55,0.08,0.26),body);b.position.set(-0.27,0,0);head.add(b);
+    const em=mesh(new THREE.PlaneGeometry(0.36,0.18),emitMat,false,false);em.rotation.x=Math.PI/2;em.position.set(-0.3,-0.041,0);head.add(em);
+    g.add(head);
+    const mast=mesh(new THREE.CylinderGeometry(0.03,0.03,0.3,10),pm);mast.position.y=h+0.15;g.add(mast);
+    const pg=new THREE.Group();pg.position.set(0,h+0.32,0);pg.rotation.y=rad(-P.panelAz);
+    const inner=new THREE.Group();inner.rotation.x=rad(P.panelTilt);pg.add(inner);
+    const pmats=[std(0xc9ced4,{metalness:.6}),std(0xc9ced4,{metalness:.6}),new THREE.MeshStandardMaterial({map:panelTex,roughness:.25,metalness:.2}),std(0x666a70),std(0xc9ced4,{metalness:.6}),std(0xc9ced4,{metalness:.6})];
+    const pn=mesh(new THREE.BoxGeometry(P.panelW,0.035,P.panelL),pmats);inner.add(pn);
+    const br=mesh(new THREE.BoxGeometry(0.06,0.06,P.panelL*0.8),body);br.position.y=-0.05;inner.add(br);
+    if(P.type==="twoinone"){const bat=mesh(new THREE.BoxGeometry(P.panelW*0.7,0.07,P.panelL*0.55),std(0x3b3f45,{metalness:.4,roughness:.5}));bat.position.y=-0.06;inner.add(bat);}
+    g.add(pg);
+    labels.push([new THREE.Vector3(0,h+0.4,0),new THREE.Vector3(1.0,h+0.95,0),P.type==="twoinone"?"Panel surya + baterai":"Panel surya"]);
+    labels.push([new THREE.Vector3(G.ex-0.3,G.ey-0.05,0.13),new THREE.Vector3(1.0,G.ey-0.25,0),"Lampu LED + sensor"]);
+    if(P.type==="split"){
+      const by=Math.min(3.3,h-1.2), rr2=rB-(rB-rT)*(by/h);
+      const box=mesh(new THREE.BoxGeometry(0.2,0.48,0.32),std(0xdcdcd6,{roughness:.6}));box.position.set(rr2+0.1,by,0);g.add(box);
+      const led=new THREE.Mesh(new THREE.SphereGeometry(0.012,8,6),new THREE.MeshBasicMaterial({color:0x37d67a}));led.position.set(rr2+0.205,by+0.17,0.1);g.add(led);
+      const cab=mesh(new THREE.CylinderGeometry(0.008,0.008,h-by-0.2,6),std(0x111111),false,false);cab.position.set(rr2+0.02,by+0.24+(h-by-0.24)/2,0.05);g.add(cab);
+      labels.push([new THREE.Vector3(rr2+0.2,by,0),new THREE.Vector3(1.0,by,0),"Box baterai + controller"]);
+    }
+  }
+  if(P.signOn){
+    const sy=Math.min(2.3,h*0.42), rr3=rB-(rB-rT)*(sy/h);
+    const tex=signTex();const side=std(0xdedede,{metalness:.4});const fm=new THREE.MeshStandardMaterial({map:tex,roughness:.6});
+    const sg=mesh(new THREE.BoxGeometry(0.015,0.6,0.42),[fm,fm,side,side,side,side]);sg.position.set(-(rr3+0.012),sy,0);g.add(sg);
+    labels.push([new THREE.Vector3(-(rr3),sy+0.2,0.21),new THREE.Vector3(1.0,sy+0.35,0),"Plang identitas"]);
+  }
+  labels.push([new THREE.Vector3(rB*0.8,h*0.62,0),new THREE.Vector3(1.0,h*0.62,0),"Tiang "+(P.poleShape==="oct"?"oktagonal":"bulat")+" "+fmt(h,1)+" m"]);
+  labels.push([new THREE.Vector3(P.footW/2,0.1,0),new THREE.Vector3(1.0,0.22,0),"Pondasi cor "+fmt(P.footW*100)+"x"+fmt(P.footW*100)+"x"+fmt(P.footD*100)+" cm"]);
+  if(P.night){
+    const half=rad(Math.min(P.beam/2,80)), lm=P.lampW*P.eff;
+    const sp=new THREE.SpotLight(col,Math.min(2.6,lm/3800),G.ly*5,Math.min(half,1.45),0.55,1.2);
+    sp.position.set(G.lx,G.ly,0);sp.target.position.set(G.lx-0.6,0,0);g.add(sp);g.add(sp.target);
+    if(i<2){sp.castShadow=true;sp.shadow.mapSize.set(1024,1024);sp.shadow.bias=-0.0008;sp.shadow.camera.near=0.2;}
+    const glow=new THREE.PointLight(col,0.35,3,2);glow.position.set(G.lx,G.ly-0.25,0);g.add(glow);
+    if(P.showCone){const R=Math.min(G.ly*Math.tan(half),14);const cone=new THREE.Mesh(new THREE.ConeGeometry(R,G.ly,48,1,true),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.03,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));cone.position.set(G.lx,G.ly/2,0);g.add(cone);}
+  }
+  if(i===0){
+    if(P.showLabels) labels.forEach(([a,b,t])=>{const s=labelSprite(t);s.position.copy(b);g.add(s);g.add(leader(a,b));});
+    if(P.showLabels){const dm=new THREE.LineBasicMaterial({color:0xffffff,depthTest:false,transparent:true,opacity:.85});const x=0.55,pts=[new THREE.Vector3(x,0,0),new THREE.Vector3(x,h,0),new THREE.Vector3(x-0.08,0,0),new THREE.Vector3(x+0.08,0,0),new THREE.Vector3(x-0.08,h,0),new THREE.Vector3(x+0.08,h,0)];const ln=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),dm);ln.renderOrder=997;g.add(ln);}
+    if(P.showPerson){const pp=new THREE.Group();const skin=std(0xe0b48c),shirt=std(0xc0553f),pants=std(0x3a4560);
+      [-0.09,0.09].forEach(z=>{const l=mesh(new THREE.CylinderGeometry(0.06,0.055,0.82,10),pants);l.position.set(0,0.41,z);pp.add(l);});
+      const t=mesh(new THREE.CylinderGeometry(0.17,0.15,0.62,14),shirt);t.position.y=1.13;pp.add(t);
+      [-0.22,0.22].forEach(z=>{const a=mesh(new THREE.CylinderGeometry(0.045,0.04,0.58,8),shirt);a.position.set(0,1.12,z);a.rotation.x=z>0?0.12:-0.12;pp.add(a);});
+      const hd=mesh(new THREE.SphereGeometry(0.115,16,12),skin);hd.position.y=1.585;pp.add(hd);
+      pp.position.set(-1.3,0,1.4);pp.rotation.y=-0.4;g.add(pp);}
+  }
+  g.position.set(POLE_X,0,i*P.spacing);
+  return g;
+}
+function disposeTree(o){o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material){(Array.isArray(n.material)?n.material:[n.material]).forEach(m=>{if(m.map&&!SHARED.has(m.map))m.map.dispose();m.dispose();});}});}
+let buildQueued=false;
+function queueBuild(){if(!buildQueued){buildQueued=true;requestAnimationFrame(()=>{buildQueued=false;build();});}}
+function build(){
+  if(world){scene.remove(world);disposeTree(world);} if(poles){scene.remove(poles);disposeTree(poles);}
+  world=buildWorld();scene.add(world);
+  poles=new THREE.Group();for(let i=0;i<P.count;i++)poles.add(buildPole(i));scene.add(poles);
+  const n=P.night;
+  scene.background=new THREE.Color(n?0x0b1424:0xbcd6ec);
+  scene.fog=new THREE.Fog(n?0x0b1424:0xbcd6ec,n?40:70,n?160:260);
+  hemi.intensity=n?0.16:0.75;hemi.color.set(n?0x8aa0d0:0xcfe3ff);
+  sun.intensity=n?0.07:1.15;sun.color.set(n?0x9fb4ff:0xfff4e0);
+  stars.visible=n; renderer.toneMappingExposure=n?1.25:1.0;
+}
+
+/* ---------- orbit ---------- */
+const cam={t:new THREE.Vector3(),th:-0.9,ph:1.2,r:12};
+const goal={t:new THREE.Vector3(),th:-0.9,ph:1.2,r:12};
+function setView(v){
+  const h=P.poleH, span=(P.count-1)*P.spacing;
+  goal.t.set(POLE_X-0.4,h*0.55,0);
+  if(v==="iso"){goal.th=-0.95;goal.ph=1.22;goal.r=Math.max(11,h*2.6+3);}
+  if(v==="front"){goal.th=-Math.PI/2;goal.ph=1.45;goal.r=Math.max(10,h*2.3+2);}
+  if(v==="side"){goal.th=0.001;goal.ph=1.45;goal.r=Math.max(10,h*2.3+2);}
+  if(v==="top"){goal.th=-Math.PI/2;goal.ph=0.12;goal.r=Math.max(10,h*2.4);goal.t.y=0;}
+  if(v==="row"){goal.t.set(0,h*0.3,span/2);goal.th=Math.PI*0.88;goal.ph=1.3;goal.r=Math.max(18,span*0.75+h*2.5);}
+  if(goal.th-cam.th>Math.PI)goal.th-=Math.PI*2; if(cam.th-goal.th>Math.PI)goal.th+=Math.PI*2;
+  document.querySelectorAll("#views button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+}
+const el=$("#view"), ptrs=new Map(); let lastPinch=0;
+el.addEventListener("contextmenu",e=>e.preventDefault());
+el.addEventListener("pointerdown",e=>{el.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,b:e.button,s:e.shiftKey});clearViewBtn();if(ptrs.size===2){const [a,b]=[...ptrs.values()];lastPinch=Math.hypot(a.x-b.x,a.y-b.y);}});
+el.addEventListener("pointermove",e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;
+  if(ptrs.size===1){
+    if(p.b===2||p.s||e.shiftKey){pan(dx,dy);} else {goal.th-=dx*0.007;goal.ph=Math.min(Math.PI/2-0.03,Math.max(0.06,goal.ph-dy*0.006));}
+  } else if(ptrs.size===2){
+    p.x=e.clientX;p.y=e.clientY;const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(lastPinch){goal.r=Math.min(180,Math.max(2,goal.r*lastPinch/d));}lastPinch=d;pan(dx/2,dy/2);return;
+  }
+  p.x=e.clientX;p.y=e.clientY;
+});
+const up=e=>{ptrs.delete(e.pointerId);lastPinch=0;};
+el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);
+el.addEventListener("wheel",e=>{e.preventDefault();goal.r=Math.min(180,Math.max(2,goal.r*(1+Math.sign(e.deltaY)*Math.min(Math.abs(e.deltaY),120)*0.0012)));},{passive:false});
+function pan(dx,dy){const s=goal.r*0.0016;const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);const upv=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);goal.t.addScaledVector(right,-dx*s).addScaledVector(upv,dy*s);goal.t.y=Math.max(-2,goal.t.y);}
+function clearViewBtn(){document.querySelectorAll("#views button").forEach(b=>b.classList.remove("on"));}
+
+function resize(){const r=$("#stage").getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();}
+new ResizeObserver(resize).observe($("#stage"));resize();
+
+function tick(){
+  if(P.autoRotate&&ptrs.size===0)goal.th+=0.004;
+  const k=0.16;cam.th+=(goal.th-cam.th)*k;cam.ph+=(goal.ph-cam.ph)*k;cam.r+=(goal.r-cam.r)*k;cam.t.lerp(goal.t,k);
+  camera.position.set(cam.t.x+cam.r*Math.sin(cam.ph)*Math.sin(cam.th),cam.t.y+cam.r*Math.cos(cam.ph),cam.t.z+cam.r*Math.sin(cam.ph)*Math.cos(cam.th));
+  camera.lookAt(cam.t);
+  renderer.render(scene,camera);requestAnimationFrame(tick);
+}
+
+/* ---------- toolbar & actions ---------- */
+function syncTopbar(){$("#bNight").classList.toggle("on",!!P.night);$("#bNight").textContent=P.night?"Malam":"Siang";$("#bRotate").classList.toggle("on",!!P.autoRotate);
+  document.querySelectorAll("#controls .tog").forEach(r=>{if(r._it&&(r._it.k==="night"||r._it.k==="autoRotate"))r.querySelector("input").checked=!!P[r._it.k];});}
+document.querySelectorAll("#views button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
+$("#bNight").addEventListener("click",()=>{set("night",!P.night);refreshVis();});
+$("#bRotate").addEventListener("click",()=>set("autoRotate",!P.autoRotate));
+function shot(){renderer.render(scene,camera);$("#shotImg").src=renderer.domElement.toDataURL("image/png");$("#mShot").classList.add("show");}
+$("#bShot").addEventListener("click",shot);$("#bShot2").addEventListener("click",shot);
+$("#bCopyImg").addEventListener("click",()=>{try{renderer.domElement.toBlob(b=>{navigator.clipboard.write([new ClipboardItem({"image/png":b})]).then(()=>toast("Gambar disalin, tinggal tempel di PowerPoint")).catch(()=>toast("Salin gambar ditolak. Pakai klik kanan, simpan gambar."));});}catch(e){toast("Salin gambar ditolak. Pakai klik kanan, simpan gambar.");}});
+$("#bCopy").addEventListener("click",()=>{const t=specText();try{navigator.clipboard.writeText(t).then(()=>toast("Spesifikasi disalin")).catch(()=>showSpec(t));}catch(e){showSpec(t);}});
+function showSpec(t){$("#specText").value=t;$("#mSpec").classList.add("show");$("#specText").select();}
+$("#bReset").addEventListener("click",()=>applyPreset("standar"));
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>b.closest(".modal").classList.remove("show")));
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show");}));
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2200);}
+
+renderControls();updateStats();syncTopbar();build();setView("iso");
+cam.t.copy(goal.t);cam.th=goal.th-0.6;cam.ph=goal.ph;cam.r=goal.r*1.4;
+tick();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>queueBuild());
+})();
+</script>
+</body>
+</html>
